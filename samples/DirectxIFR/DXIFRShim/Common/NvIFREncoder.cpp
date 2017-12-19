@@ -188,6 +188,7 @@ void NvIFREncoder::EncoderThreadProc(int index)
 
     while (!bStopEncoder)
     {
+		/* SP Edit: Remove adaptive bit rate
         fin.open(oss.str());
         if (fin.is_open())
         {
@@ -235,6 +236,7 @@ void NvIFREncoder::EncoderThreadProc(int index)
             LOG_ERROR(logger, "Failed to open file " << index);
         }
         
+
         // Index 0 will do the summing of the array.
         // This will pose problems in the future if player 0 can 
         // just leave while the other players are playing.
@@ -246,12 +248,13 @@ void NvIFREncoder::EncoderThreadProc(int index)
                 sumWeight += playerInputArray[i];
             }
         }
+		*/
 
         if (!UpdateBackBuffer())
         {
             LOG_DEBUG(logger, "UpdateBackBuffer() failed");
         }
-
+		
         NVIFRRESULT res = pIFR->NvIFRTransferRenderTargetToSys(0);
 
         if (res == NVIFR_SUCCESS)
@@ -269,6 +272,7 @@ void NvIFREncoder::EncoderThreadProc(int index)
             }
             ResetEvent(gpuEvent[index]);
 
+			/* SP Edit: Remove adaptive bit rate
             // Adaptive bitrate - independent of other players
             //if (playerInputArray[index] == 3) { // shooting
             //    targetBitrate = 5000000;
@@ -293,7 +297,13 @@ void NvIFREncoder::EncoderThreadProc(int index)
             {
                 nvEncoder.EncodeFrameLoop(bufferArray[index], false, index, targetBitrate);
             }
+			*/
+
             //write_video_frame(ocArray[index], /*&ostArray[index], */bufferArray[index], index);
+			
+			// SP Edit: Set constant bit rate
+
+			nvEncoder.EncodeFrameLoop(bufferArray[index], true, index, bandwidthPerPlayer);
         }
         else
         {
