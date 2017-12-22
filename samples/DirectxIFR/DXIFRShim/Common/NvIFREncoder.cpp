@@ -39,7 +39,7 @@ extern simplelogger::Logger *logger;
 
 // Nvidia GRID capture variables
 #define NUMFRAMESINFLIGHT 1 // Limit is 3? Putting 4 causes an invalid parameter error to be thrown.
-#define MAX_PLAYERS 4
+#define MAX_PLAYERS 8
 HANDLE gpuEvent[MAX_PLAYERS];
 uint8_t *bufferArray[MAX_PLAYERS];
 

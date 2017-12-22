@@ -18,7 +18,7 @@
 std::ofstream NvHWEncoderLogFile;
 
 // Host IP address
-const std::string streamingIP = "http://magam001.d1.comp.nus.edu.sg:";
+const std::string streamingIP = "http://magam002.d2.comp.nus.edu.sg:";
 const int firstPort = 30000;
 
 NVENCSTATUS CNvHWEncoder::NvEncOpenEncodeSession(void* device, uint32_t deviceType)
