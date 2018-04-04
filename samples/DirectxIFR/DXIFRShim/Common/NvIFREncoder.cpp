@@ -51,7 +51,7 @@ int bufferWidth;
 int bufferHeight;
 
 // Bit rate switching variables
-const int bandwidthPerPlayer = 2000000;
+const int bandwidthPerPlayer = 1000000;
 int totalBandwidthAvailable = 0;
 int sumWeight = 0;
 int playerInputArray[MAX_PLAYERS] = { 0 };
@@ -196,6 +196,7 @@ void NvIFREncoder::EncoderThreadProc(int index)
             fin.get(c);
             fin.close();
         
+			/* SP Edit: commented out chunk
             // If we shoot, we should refresh the shooting start time
             if (c == '3')
             {
@@ -228,6 +229,7 @@ void NvIFREncoder::EncoderThreadProc(int index)
                 isIdling = false; // There is input. 
             }
         
+			*/
             playerInputArray[index] = (c - '0');
         }
         else
@@ -282,8 +284,12 @@ void NvIFREncoder::EncoderThreadProc(int index)
 
             // Adaptive bitrate - depends on other players
             float weight = (float)playerInputArray[index] / (float)sumWeight;
+			// SP Edit: limit the min and max bit rate
             targetBitrate = (int)(weight * totalBandwidthAvailable);
             
+			targetBitrate = targetBitrate < 3000000 ? targetBitrate : 3000000;
+			targetBitrate = targetBitrate > 100000 ? targetBitrate : 100000;
+
             if (targetBitrate != currentBitrate)
             {
                 nvEncoder.EncodeFrameLoop(bufferArray[index], true, index, targetBitrate);
