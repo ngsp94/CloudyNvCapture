@@ -193,11 +193,11 @@ static ULONG STDMETHODCALLTYPE IDXGISwapChain_Release_Proxy(IDXGISwapChain * Thi
     LOG_TRACE(logger, __FUNCTION__);
     vtbl.AddRef(This);
     ULONG uRef = vtbl.Release(This) - 1;
-	if (pEncoderArray[0] != NULL && uRef == 0 && pEncoderArray.size() != 0 && --numPlayers <= 0)
-	{
-		LOG_DEBUG(logger, "delete pEncoder0 in Release(), pEncoder0=" << pEncoderArray[0]);
-		delete pEncoderArray[0];
-	}
+    if (pEncoderArray[0] != NULL && uRef == 0 && pEncoderArray.size() != 0 && --numPlayers <= 0)
+    {
+        LOG_DEBUG(logger, "delete pEncoder0 in Release(), pEncoder0=" << pEncoderArray[0]);
+        delete pEncoderArray[0];
+    }
     return vtbl.Release(This);
 }
 
