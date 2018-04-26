@@ -37,6 +37,8 @@ std::vector<IDXGISwapChain*> SwapChainArray;
 
 int index = 0;
 
+int numPlayers = 0;
+
 LONGLONG g_llBegin = 0;
 LONGLONG g_llPerfFrequency = 0;
 BOOL g_timeInitialized = FALSE;
@@ -185,17 +187,17 @@ static ULONG STDMETHODCALLTYPE IDXGISwapChain_Release_Proxy(IDXGISwapChain * Thi
         SwapChainArray.push_back(This);
         static NvIFREncoder *pEncoder;
         pEncoderArray.push_back(pEncoder);
+		numPlayers++;
     }
     
     LOG_TRACE(logger, __FUNCTION__);
     vtbl.AddRef(This);
     ULONG uRef = vtbl.Release(This) - 1;
-    if (uRef == 0 && pEncoderArray.size() != 0 && pEncoderArray[0]->CheckPresenter(This)) {
-        // This does not run at all.
-        LOG_DEBUG(logger, "delete pEncoder0 in Release(), pEncoder0=" << pEncoderArray[0]);
-        //delete pEncoder0;
-        pEncoderArray[0] = NULL;
-    }
+	if (pEncoderArray[0] != NULL && uRef == 0 && pEncoderArray.size() != 0 && --numPlayers <= 0)
+	{
+		LOG_DEBUG(logger, "delete pEncoder0 in Release(), pEncoder0=" << pEncoderArray[0]);
+		delete pEncoderArray[0];
+	}
     return vtbl.Release(This);
 }
 
