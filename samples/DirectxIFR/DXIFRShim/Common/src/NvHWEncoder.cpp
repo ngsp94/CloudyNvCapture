@@ -887,10 +887,11 @@ NVENCSTATUS CNvHWEncoder::CreateEncoder(const EncodeConfig *pEncCfg, int index)
 
     std::stringstream *StringStream = new std::stringstream();
     *StringStream << "ffmpeg " \
-                "-i - " \
+                "-y -i - " \
                 "-listen 1 -threads 1 -vcodec copy -preset ultrafast " \
                 "-an -tune zerolatency " \
-                "-f h264 " << streamingIP << firstPort + index;
+                "-f h264 vid" << index << ".264 2> output" << index << ".log";
+
     //*StringStream << "ffmpeg " \
     //            "-y -i - " \
     //            "-listen 1 -threads 1 -vcodec copy -preset ultrafast " \

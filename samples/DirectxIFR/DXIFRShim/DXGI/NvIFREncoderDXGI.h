@@ -47,8 +47,9 @@ public:
 
 		if (pLastDeviceR != pDeviceR) {
 			LOG_INFO(logger, "DXGI: to open shared resource");
-			
+
 			pLastDeviceR = NULL;
+
 			if (pSharedTextureR) {
 				pSharedTextureR->Release();
 				pSharedTextureR = NULL;

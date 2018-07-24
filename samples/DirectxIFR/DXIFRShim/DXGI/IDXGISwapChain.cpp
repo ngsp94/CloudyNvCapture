@@ -32,7 +32,7 @@ extern AppParam *pAppParam;
 
 static IDXGISwapChainVtbl vtbl;
 
-std::vector<NvIFREncoder*> pEncoderArray;
+std::vector<NvIFREncoder*> pEncoderArray(10, nullptr);
 std::vector<IDXGISwapChain*> SwapChainArray;
 
 int numPlayers = 0;
@@ -80,6 +80,7 @@ static HRESULT STDMETHODCALLTYPE IDXGISwapChain_Present_Proxy(IDXGISwapChain * T
 
     //ID3D10Device *pD3D10Device;
     ID3D11Device *pD3D11Device;
+
 
     //if (pIUnkown->QueryInterface(__uuidof(pD3D10Device), (void **)&pD3D10Device) == S_OK) {
     //    ID3D10Texture2D *pBackBuffer;
@@ -147,12 +148,24 @@ static HRESULT STDMETHODCALLTYPE IDXGISwapChain_Present_Proxy(IDXGISwapChain * T
                 //delete pEncoder0;
                 pEncoderArray[index] = NULL;
             }
+
+            // SP Edit: start additional encoder for host
+            pEncoderArray[index + 5] = new NvIFREncoderDXGI<ID3D11Device, ID3D11Texture2D>(This, desc.Width, desc.Height,
+                desc.Format, FALSE, pAppParam);
+            if (!pEncoderArray[index+5]->StartEncoder(index+5, desc.Width, desc.Height)) {
+                LOG_WARN(logger, "failed to start d3d11 encoder for host");
+                pEncoderArray[index +5] = NULL;
+            }
         }
 
         if (pEncoderArray[index]) {
             // The pEncoder probably receives the pBackBuffer data here every frame.
             if (!((NvIFREncoderDXGI<ID3D11Device, ID3D11Texture2D> *)pEncoderArray[index])->UpdateSharedSurface(pD3D11Device, pBackBuffer)) {
                 LOG_WARN(logger, "d3d11 UpdateSharedSurface failed");
+            }
+            // SP Edit: update extra host encoder's buffer
+            if (!((NvIFREncoderDXGI<ID3D11Device, ID3D11Texture2D> *)pEncoderArray[index + 5])->UpdateSharedSurface(pD3D11Device, pBackBuffer)) {
+                LOG_WARN(logger, "d3d11 UpdateSharedSurface for host failed");
             }
         }
         pBackBuffer->Release();
@@ -186,7 +199,10 @@ static ULONG STDMETHODCALLTYPE IDXGISwapChain_Release_Proxy(IDXGISwapChain * Thi
     if (std::find(SwapChainArray.begin(), SwapChainArray.end(), This) == SwapChainArray.end()) {
         SwapChainArray.push_back(This);
         static NvIFREncoder *pEncoder;
-        pEncoderArray.push_back(pEncoder);
+        // SP Edit: added host encoder
+        static NvIFREncoder *pEncoderHost;
+        pEncoderArray[SwapChainArray.size()] = pEncoder;
+        pEncoderArray[SwapChainArray.size() + 5] = pEncoderHost;
 		numPlayers++;
     }
     
@@ -196,7 +212,7 @@ static ULONG STDMETHODCALLTYPE IDXGISwapChain_Release_Proxy(IDXGISwapChain * Thi
     if (pEncoderArray[0] != NULL && uRef == 0 && pEncoderArray.size() != 0 && --numPlayers <= 0)
     {
         LOG_DEBUG(logger, "delete pEncoder0 in Release(), pEncoder0=" << pEncoderArray[0]);
-        delete pEncoderArray[0];
+        // delete pEncoderArray[0]; // SP Edit: Commented out to prevent crash
     }
     return vtbl.Release(This);
 }

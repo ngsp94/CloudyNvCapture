@@ -35,7 +35,7 @@
 #define DEFAULT_I_QOFFSET 0.f
 #define DEFAULT_B_QOFFSET 1.25f
 
-#define MAX_PLAYERS 8
+#define MAX_PLAYERS 10
 
 typedef struct _EncodeConfig
 {
