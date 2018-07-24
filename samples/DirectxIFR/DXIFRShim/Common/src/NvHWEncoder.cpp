@@ -18,7 +18,7 @@
 std::ofstream NvHWEncoderLogFile;
 
 // Host IP address
-const std::string streamingIP = "http://magam001.d1.comp.nus.edu.sg:";
+const std::string streamingIP = "http://magam002.d2.comp.nus.edu.sg:";
 const int firstPort = 30000;
 
 NVENCSTATUS CNvHWEncoder::NvEncOpenEncodeSession(void* device, uint32_t deviceType)
@@ -886,11 +886,21 @@ NVENCSTATUS CNvHWEncoder::CreateEncoder(const EncodeConfig *pEncCfg, int index)
     m_fOutputArray[index] = pEncCfg->fOutput;
 
     std::stringstream *StringStream = new std::stringstream();
-    *StringStream << "ffmpeg " \
-                "-i - " \
-                "-listen 1 -threads 1 -vcodec copy -preset ultrafast " \
-                "-an -tune zerolatency " \
-                "-f h264 " << streamingIP << firstPort + index;
+    if (index < HOST_OFFSET) {
+        *StringStream << "ffmpeg " \
+            "-y -i - " \
+            "-listen 1 -threads 1 -vcodec copy -preset ultrafast " \
+            "-an -tune zerolatency " \
+            "-f h264 client" << index << ".264 2> client" << index << ".log";
+    }
+    else {
+        *StringStream << "ffmpeg " \
+            "-y -i - " \
+            "-listen 1 -threads 1 -vcodec copy -preset ultrafast " \
+            "-an -tune zerolatency " \
+            "-f h264 host" << index - HOST_OFFSET << ".264 2> host" << index - HOST_OFFSET << ".log";
+    }
+
     //*StringStream << "ffmpeg " \
     //            "-y -i - " \
     //            "-listen 1 -threads 1 -vcodec copy -preset ultrafast " \

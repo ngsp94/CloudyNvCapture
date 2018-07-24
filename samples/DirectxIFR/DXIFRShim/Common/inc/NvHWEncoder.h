@@ -35,6 +35,9 @@
 #define DEFAULT_I_QOFFSET 0.f
 #define DEFAULT_B_QOFFSET 1.25f
 
+#define MAX_PLAYERS 10
+#define HOST_OFFSET 5
+
 typedef struct _EncodeConfig
 {
     int              width;
@@ -148,7 +151,7 @@ class CNvHWEncoder
 public:
     uint32_t                                             m_EncodeIdx;
     //FILE                                                *m_fOutput;
-    FILE                                                *m_fOutputArray[4];
+    FILE                                                *m_fOutputArray[MAX_PLAYERS];
     uint32_t                                             m_uMaxWidth;
     uint32_t                                             m_uMaxHeight;
     uint32_t                                             m_uCurWidth;

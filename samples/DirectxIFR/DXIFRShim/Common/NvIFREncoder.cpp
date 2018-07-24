@@ -39,7 +39,7 @@ extern simplelogger::Logger *logger;
 
 // Nvidia GRID capture variables
 #define NUMFRAMESINFLIGHT 1 // Limit is 3? Putting 4 causes an invalid parameter error to be thrown.
-#define MAX_PLAYERS 4
+#define MAX_PLAYERS 10
 HANDLE gpuEvent[MAX_PLAYERS];
 uint8_t *bufferArray[MAX_PLAYERS];
 
@@ -52,6 +52,7 @@ int bufferHeight;
 
 // Bit rate switching variables
 const int bandwidthPerPlayer = 1000000;
+const int hostBandwidth = 4000000;
 int totalBandwidthAvailable = 0;
 int sumWeight = 0;
 int playerInputArray[MAX_PLAYERS] = { 0 };
@@ -98,7 +99,7 @@ BOOL NvIFREncoder::StartEncoder(int index, int windowWidth, int windowHeight)
     bInitEncoderSuccessful = FALSE;
 
     indexToUse = index;
-    totalBandwidthAvailable += bandwidthPerPlayer;
+    totalBandwidthAvailable += (bandwidthPerPlayer/2.0); // ignore host's bandwidth
     hthEncoder = (HANDLE)_beginthread(EncoderThreadStartProc, 0, this);
 
     if (!hthEncoder) {
@@ -188,53 +189,55 @@ void NvIFREncoder::EncoderThreadProc(int index)
 
     while (!bStopEncoder)
     {
-        fin.open(oss.str());
-        if (fin.is_open())
-        {
-            // Always read the value at the end of the file
-            fin.seekg(-3, ios::end); // -1 and -2 gets \n on the last line
-            fin.get(c);
-            fin.close();
+        if (index < MAX_PLAYERS / 2) { // client encoding - adaptive. hosts have default weight of 0
+            fin.open(oss.str());
+            if (fin.is_open())
+            {
+                // Always read the value at the end of the file
+                fin.seekg(-3, ios::end); // -1 and -2 gets \n on the last line
+                fin.get(c);
+                fin.close();
         
-			/* SP Edit: commented out chunk
-            // If we shoot, we should refresh the shooting start time
-            if (c == '3')
-            {
-                shootingStartTime = std::time(0);
-            }
-        
-            // We cannot let any other movement e.g. "c = 2" through if we have recently shot
-            if ((std::time(0) - shootingStartTime) < timeBeforeIdle)
-            {
-                c = '3';
-            }
-            // No input from player - is idling
-            else if (c == '1')
-            {
-                if (isIdling == false)
+			    /* SP Edit: commented out chunk
+                // If we shoot, we should refresh the shooting start time
+                if (c == '3')
                 {
-                    // Start the countdown
-                    idleStartTime = std::time(0);
-                    isIdling = true;
+                    shootingStartTime = std::time(0);
                 }
-                // We have idled for more than 3 seconds
-                else if ((std::time(0) - idleStartTime) >= timeBeforeIdle)
-                {
-                    c = '1';
-                }
-            }
-            // If there is input, allow countdown to restart
-            else if (c == '3' || c == '2')
-            {
-                isIdling = false; // There is input. 
-            }
         
-			*/
-            playerInputArray[index] = (c - '0');
-        }
-        else
-        {
-            LOG_ERROR(logger, "Failed to open file " << index);
+                // We cannot let any other movement e.g. "c = 2" through if we have recently shot
+                if ((std::time(0) - shootingStartTime) < timeBeforeIdle)
+                {
+                    c = '3';
+                }
+                // No input from player - is idling
+                else if (c == '1')
+                {
+                    if (isIdling == false)
+                    {
+                        // Start the countdown
+                        idleStartTime = std::time(0);
+                        isIdling = true;
+                    }
+                    // We have idled for more than 3 seconds
+                    else if ((std::time(0) - idleStartTime) >= timeBeforeIdle)
+                    {
+                        c = '1';
+                    }
+                }
+                // If there is input, allow countdown to restart
+                else if (c == '3' || c == '2')
+                {
+                    isIdling = false; // There is input. 
+                }
+        
+			    */
+                playerInputArray[index] = (c - '0');
+            }
+            else
+            {
+                LOG_ERROR(logger, "Failed to open file " << index);
+            }
         }
         
         // Index 0 will do the summing of the array.
@@ -282,24 +285,29 @@ void NvIFREncoder::EncoderThreadProc(int index)
             //    targetBitrate = 500000;
             //}
 
-            // Adaptive bitrate - depends on other players
-            float weight = (float)playerInputArray[index] / (float)sumWeight;
-			// SP Edit: limit the min and max bit rate
-            targetBitrate = (int)(weight * totalBandwidthAvailable);
-            
-			targetBitrate = targetBitrate < 3000000 ? targetBitrate : 3000000;
-			targetBitrate = targetBitrate > 100000 ? targetBitrate : 100000;
+            if (index < MAX_PLAYERS / 2) {
+                // Adaptive bitrate - depends on other players
+                float weight = (float)playerInputArray[index] / (float)sumWeight;
+                // SP Edit: limit the min and max bit rate
+                targetBitrate = (int)(weight * totalBandwidthAvailable);
 
-            if (targetBitrate != currentBitrate)
-            {
-                nvEncoder.EncodeFrameLoop(bufferArray[index], true, index, targetBitrate);
-                currentBitrate = targetBitrate;
+                targetBitrate = targetBitrate < 3000000 ? targetBitrate : 3000000;
+                targetBitrate = targetBitrate > 100000 ? targetBitrate : 100000;
+
+                if (targetBitrate != currentBitrate)
+                {
+                    nvEncoder.EncodeFrameLoop(bufferArray[index], true, index, targetBitrate);
+                    currentBitrate = targetBitrate;
+                }
+                else
+                {
+                    nvEncoder.EncodeFrameLoop(bufferArray[index], false, index, targetBitrate);
+                }
+                //write_video_frame(ocArray[index], /*&ostArray[index], */bufferArray[index], index);
             }
-            else
-            {
-                nvEncoder.EncodeFrameLoop(bufferArray[index], false, index, targetBitrate);
+            else { // host encoder, use high, constant bit rate
+                nvEncoder.EncodeFrameLoop(bufferArray[index], true, index, hostBandwidth);
             }
-            //write_video_frame(ocArray[index], /*&ostArray[index], */bufferArray[index], index);
         }
         else
         {
