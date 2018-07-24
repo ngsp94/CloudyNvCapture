@@ -886,11 +886,21 @@ NVENCSTATUS CNvHWEncoder::CreateEncoder(const EncodeConfig *pEncCfg, int index)
     m_fOutputArray[index] = pEncCfg->fOutput;
 
     std::stringstream *StringStream = new std::stringstream();
-    *StringStream << "ffmpeg " \
+
+    if (index < HOST_OFFSET) {
+        *StringStream << "ffmpeg " \
                 "-y -i - " \
                 "-listen 1 -threads 1 -vcodec copy -preset ultrafast " \
                 "-an -tune zerolatency " \
-                "-f h264 vid" << index << ".264 2> output" << index << ".log";
+                "-f h264 client" << index << ".264 2> client" << index << ".log";
+    }
+    else {
+        *StringStream << "ffmpeg " \
+            "-y -i - " \
+            "-listen 1 -threads 1 -vcodec copy -preset ultrafast " \
+            "-an -tune zerolatency " \
+            "-f h264 host" << index - HOST_OFFSET << ".264 2> host" << index - HOST_OFFSET << ".log";
+    }
 
     //*StringStream << "ffmpeg " \
     //            "-y -i - " \

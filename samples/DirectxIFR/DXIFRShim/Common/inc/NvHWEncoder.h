@@ -36,6 +36,8 @@
 #define DEFAULT_B_QOFFSET 1.25f
 
 #define MAX_PLAYERS 10
+#define HOST_OFFSET 5 // host index is client index + offset
+
 
 typedef struct _EncodeConfig
 {

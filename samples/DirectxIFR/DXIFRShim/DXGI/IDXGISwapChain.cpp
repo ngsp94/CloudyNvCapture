@@ -27,6 +27,8 @@
 #include "ReplaceVtbl.h"
 #include "Logger.h"
 
+#define HOST_OFFSET 5 // host index is client index + offset
+
 extern simplelogger::Logger *logger;
 extern AppParam *pAppParam;
 
@@ -150,11 +152,11 @@ static HRESULT STDMETHODCALLTYPE IDXGISwapChain_Present_Proxy(IDXGISwapChain * T
             }
 
             // SP Edit: start additional encoder for host
-            pEncoderArray[index + 5] = new NvIFREncoderDXGI<ID3D11Device, ID3D11Texture2D>(This, desc.Width, desc.Height,
+            pEncoderArray[index + HOST_OFFSET] = new NvIFREncoderDXGI<ID3D11Device, ID3D11Texture2D>(This, desc.Width, desc.Height,
                 desc.Format, FALSE, pAppParam);
-            if (!pEncoderArray[index+5]->StartEncoder(index+5, desc.Width, desc.Height)) {
+            if (!pEncoderArray[index + HOST_OFFSET]->StartEncoder(index + HOST_OFFSET, desc.Width, desc.Height)) {
                 LOG_WARN(logger, "failed to start d3d11 encoder for host");
-                pEncoderArray[index +5] = NULL;
+                pEncoderArray[index + HOST_OFFSET] = NULL;
             }
         }
 
@@ -164,7 +166,7 @@ static HRESULT STDMETHODCALLTYPE IDXGISwapChain_Present_Proxy(IDXGISwapChain * T
                 LOG_WARN(logger, "d3d11 UpdateSharedSurface failed");
             }
             // SP Edit: update extra host encoder's buffer
-            if (!((NvIFREncoderDXGI<ID3D11Device, ID3D11Texture2D> *)pEncoderArray[index + 5])->UpdateSharedSurface(pD3D11Device, pBackBuffer)) {
+            if (!((NvIFREncoderDXGI<ID3D11Device, ID3D11Texture2D> *)pEncoderArray[index + HOST_OFFSET])->UpdateSharedSurface(pD3D11Device, pBackBuffer)) {
                 LOG_WARN(logger, "d3d11 UpdateSharedSurface for host failed");
             }
         }
@@ -202,7 +204,7 @@ static ULONG STDMETHODCALLTYPE IDXGISwapChain_Release_Proxy(IDXGISwapChain * Thi
         // SP Edit: added host encoder
         static NvIFREncoder *pEncoderHost;
         pEncoderArray[SwapChainArray.size()] = pEncoder;
-        pEncoderArray[SwapChainArray.size() + 5] = pEncoderHost;
+        pEncoderArray[SwapChainArray.size() + HOST_OFFSET] = pEncoderHost;
 		numPlayers++;
     }
     

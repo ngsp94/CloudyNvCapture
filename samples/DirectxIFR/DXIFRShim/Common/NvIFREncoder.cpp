@@ -44,7 +44,7 @@ HANDLE gpuEvent[MAX_PLAYERS];
 uint8_t *bufferArray[MAX_PLAYERS];
 
 // Streaming constants
-#define STREAM_FRAME_RATE 20 // Number of images per second
+#define STREAM_FRAME_RATE 30 // Number of images per second
 
 // Input and Output video size
 int bufferWidth;
@@ -52,6 +52,7 @@ int bufferHeight;
 
 // Bit rate switching variables
 const int bandwidthPerPlayer = 1000000;
+const int hostBandwidth = 4000000;
 int totalBandwidthAvailable = 0;
 int sumWeight = 0;
 int playerInputArray[MAX_PLAYERS] = { 0 };
@@ -301,14 +302,12 @@ void NvIFREncoder::EncoderThreadProc(int index)
 
             //write_video_frame(ocArray[index], /*&ostArray[index], */bufferArray[index], index);
 			
-            // SP Edit: Set higher bandwidth for host
-            int hostBandwidth = 4000000;
-            if (index > 3)
+            // SP Edit: Constant bit rate, higher rate for host
+            if (index < HOST_OFFSET)
+                nvEncoder.EncodeFrameLoop(bufferArray[index], true, index, bandwidthPerPlayer);
+            else
                 nvEncoder.EncodeFrameLoop(bufferArray[index], true, index, hostBandwidth);
 
-			// SP Edit: Set constant bit rate
-            else
-			    nvEncoder.EncodeFrameLoop(bufferArray[index], true, index, bandwidthPerPlayer);
         }
         else
         {
